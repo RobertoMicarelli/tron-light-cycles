@@ -15,6 +15,9 @@ const PORT = process.env.PORT || 3000;
 // Serve file statici
 app.use(express.static(path.join(__dirname)));
 
+// Serve file audio dalla cartella assets
+app.use('/assets', express.static(path.join(__dirname, 'assets')));
+
 // Route principale
 app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'index.html'));

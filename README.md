@@ -51,16 +51,14 @@
 
 ## 🚀 **Quick Start**
 
-### Opzione 1: Deploy su Replit (2 minuti) ⭐
+### Opzione 1: Deploy Online (5 minuti)
 ```bash
-# Su Replit (consigliato - più veloce)
+# Su Replit (consigliato)
 1. Vai su replit.com
 2. "Create Repl" → "Import from GitHub"
-3. Incolla: https://github.com/RobertoMicarelli/tron-light-cycles
+3. Incolla URL del repository
 4. Click "Run" ▶️
 5. Gioca! 🎮
-
-# URL pubblico automatico: https://tron-light-cycles.robertomicarelli.repl.co
 ```
 
 ### Opzione 2: Deploy Locale
@@ -157,7 +155,7 @@ let maxRounds = 5;  // Invece di 3
 - **Backend**: Node.js, Express.js
 - **Real-time**: Socket.io
 - **Styling**: CSS Grid, Flexbox, Animations
-- **Audio**: Web Audio API
+- **Audio**: Web Audio API + Musica TRON locale
 
 ---
 

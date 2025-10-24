@@ -22,13 +22,12 @@ let backgroundMusic = null;
 let musicGainNode = null;
 let musicSource = null;
 
-// URL musica di sottofondo - PUOI CAMBIARLO!
-// Usa musica royalty-free da:
-// - https://www.bensound.com/royalty-free-music
-// - https://incompetech.com/music/
-// - https://freemusicarchive.org/
-const MUSIC_URL = 'https://www.bensound.com/bensound-music/bensound-scifi.mp3';
-// Alternativa: 'https://www.bensound.com/bensound-music/bensound-scifi.mp3'
+// Musica locale TRON - File MP3 inclusi nel progetto
+const MUSIC_FILES = [
+    'assets/music/corruption.mp3',
+    'assets/music/the_net.mp3'
+];
+let currentMusicIndex = 0;
 
 // Inizializza audio context
 function initAudio() {
@@ -48,7 +47,7 @@ function initAudio() {
     }
 }
 
-// Musica di sottofondo da file MP3
+// Musica di sottofondo da file MP3 locali
 function startBackgroundMusic() {
     if (!audioContext || !audioEnabled) return;
     
@@ -60,9 +59,18 @@ function startBackgroundMusic() {
         } catch (e) {}
     }
     
-    // Carica e riproduci MP3
-    fetch(MUSIC_URL)
-        .then(response => response.arrayBuffer())
+    // Seleziona musica casuale
+    const musicFile = MUSIC_FILES[currentMusicIndex];
+    currentMusicIndex = (currentMusicIndex + 1) % MUSIC_FILES.length;
+    
+    // Carica e riproduci MP3 locale
+    fetch(musicFile)
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            }
+            return response.arrayBuffer();
+        })
         .then(arrayBuffer => audioContext.decodeAudioData(arrayBuffer))
         .then(audioBuffer => {
             if (!audioEnabled) return;
@@ -73,10 +81,10 @@ function startBackgroundMusic() {
             musicSource.connect(musicGainNode);
             musicSource.start(0);
             
-            console.log('🎵 Musica caricata con successo!');
+            console.log(`🎵 Musica TRON caricata: ${musicFile}`);
         })
         .catch(error => {
-            console.log('Errore caricamento musica, uso musica procedurale:', error);
+            console.log('Errore caricamento musica locale, uso musica procedurale:', error);
             // Fallback a musica procedurale
             startProceduralMusic();
         });
