@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TRON Light Cycles - Educational Training Arena</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+</head>
+<body>
+    <!-- SCHERMATA LOGIN -->
+    <div id="loginScreen" class="screen active">
+        <div class="container">
+            <h1 class="neon-text">TRON</h1>
+            <h2 class="subtitle">LIGHT CYCLES TRAINING ARENA</h2>
+            
+            <div class="login-box">
+                <h3>👤 ACCEDI AL SISTEMA</h3>
+                <input type="text" id="playerName" placeholder="Inserisci il tuo nome" maxlength="15">
+                <button onclick="login()" class="btn-primary">ENTRA NELLA GRIGLIA</button>
+            </div>
+
+            <div class="info-box">
+                <p>🧠 <strong>Obiettivo Formativo:</strong></p>
+                <p>Sviluppa decision-making rapido, pensiero strategico e gestione dello stress sotto pressione</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- SCHERMATA SELEZIONE MODALITÀ -->
+    <div id="modeScreen" class="screen">
+        <div class="container">
+            <h1 class="neon-text">SCEGLI MODALITÀ</h1>
+            <p class="player-welcome">Benvenuto, <span id="welcomeName"></span></p>
+
+            <div class="mode-selection">
+                <div class="mode-card" onclick="selectMode('multiplayer')">
+                    <h2>🌐 MULTIPLAYER ONLINE</h2>
+                    <p>Sfida un altro giocatore in tempo reale</p>
+                    <p class="mode-detail">• Entrambi usano le frecce direzionali</p>
+                    <p class="mode-detail">• Sistema di turnazione automatica</p>
+                    <p class="mode-detail">• Chat integrata</p>
+                    <button class="btn-primary">CERCA AVVERSARIO</button>
+                </div>
+
+                <div class="mode-card" onclick="selectMode('campaign')">
+                    <h2>🎯 CAMPAGNA PROGRESSIVA</h2>
+                    <p>Affronta nemici sempre più numerosi</p>
+                    <p class="mode-detail">• Livello 1-3: +1 nemico per livello</p>
+                    <p class="mode-detail">• Livello 4+: +1 nemico ogni 2 livelli</p>
+                    <p class="mode-detail">• AI adattiva e strategica</p>
+                    <button class="btn-primary">INIZIA CAMPAGNA</button>
+                </div>
+            </div>
+
+            <button onclick="logout()" class="btn-secondary">ESCI</button>
+        </div>
+    </div>
+
+    <!-- SCHERMATA MATCHMAKING -->
+    <div id="matchmakingScreen" class="screen">
+        <div class="container">
+            <h1 class="neon-text">MATCHMAKING</h1>
+            <div class="spinner"></div>
+            <p class="waiting-text">Cercando avversario...</p>
+            <p id="waitingPlayers">Giocatori in attesa: 0</p>
+            <button onclick="cancelMatchmaking()" class="btn-secondary">ANNULLA</button>
+        </div>
+    </div>
+
+    <!-- SCHERMATA GIOCO -->
+    <div id="gameScreen" class="screen">
+        <!-- HUD -->
+        <div class="hud">
+            <div class="hud-left">
+                <div class="player-info player-blue">
+                    <span class="player-name" id="player1Name">Player 1</span>
+                    <span class="player-score" id="player1Score">0</span>
+                    <div class="speed-indicator">
+                        <span>VEL:</span>
+                        <div class="speed-bars">
+                            <div class="speed-bar active" id="p1speed1"></div>
+                            <div class="speed-bar" id="p1speed2"></div>
+                            <div class="speed-bar" id="p1speed3"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="hud-center">
+                <div class="level-info">
+                    <span id="levelText">LIVELLO 1</span>
+                    <span id="roundText">ROUND 1/3</span>
+                </div>
+                <div class="countdown" id="countdown"></div>
+            </div>
+
+            <div class="hud-right">
+                <div class="player-info player-yellow" id="opponentsContainer">
+                    <!-- Verranno aggiunti dinamicamente gli avversari -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Canvas del Gioco -->
+        <canvas id="gameCanvas"></canvas>
+
+        <!-- Controlli -->
+        <div class="controls-info">
+            <div class="control-group">
+                <span class="control-label">MOVIMENTO:</span>
+                <span class="control-keys">← ↑ → ↓</span>
+            </div>
+            <div class="control-group">
+                <span class="control-label">VELOCITÀ:</span>
+                <span class="control-keys">Z (↑) / X (↓)</span>
+            </div>
+            <div class="control-group">
+                <button onclick="pauseGame()" class="btn-small" id="pauseBtn">PAUSA</button>
+            </div>
+            <div class="control-group">
+                <button onclick="toggleAudio()" class="btn-small" id="audioBtn">🔊 AUDIO ON</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- SCHERMATA ROUND END -->
+    <div id="roundEndScreen" class="screen">
+        <div class="container">
+            <h1 class="neon-text" id="roundWinner"></h1>
+            <div class="explosion-effect"></div>
+            <div class="round-stats" id="roundStats"></div>
+            <button onclick="continueToNextLevel()" class="btn-primary" id="continueBtn">➡️ PROSEGUI</button>
+            <button onclick="backToModes()" class="btn-secondary">ESCI AL MENU</button>
+        </div>
+    </div>
+
+    <!-- SCHERMATA GAME OVER -->
+    <div id="gameOverScreen" class="screen">
+        <div class="container">
+            <h1 class="neon-text" id="finalWinner"></h1>
+            <div class="final-stats" id="finalStats"></div>
+            
+            <!-- Sezione Debrief Formativo - VISIBILE SOLO DOPO LIVELLO 7 -->
+            <div class="debrief-box" id="debriefBox" style="display: none;">
+                <h3>🧠 RIFLESSIONE POST-ESPERIENZA (Ciclo di Kolb)</h3>
+                <div class="kolb-section">
+                    <h4>💭 Reflective Observation:</h4>
+                    <ul>
+                        <li>Cosa hai sentito quando lo spazio si riduceva?</li>
+                        <li>Quando hai commesso errori critici?</li>
+                        <li>Come hai gestito la pressione temporale?</li>
+                        <li>In quali momenti ti sei sentito più sicuro/insicuro?</li>
+                    </ul>
+                </div>
+                <div class="kolb-section">
+                    <h4>🎯 Abstract Conceptualization:</h4>
+                    <ul>
+                        <li>Quale strategia si è rivelata più efficace?</li>
+                        <li>Come hai bilanciato velocità e controllo?</li>
+                        <li>Quali pattern hai notato nel tuo comportamento?</li>
+                        <li>Come questo si applica a situazioni lavorative reali?</li>
+                    </ul>
+                </div>
+                <div class="kolb-section">
+                    <h4>🚀 Active Experimentation:</h4>
+                    <ul>
+                        <li>Cosa applicherai nel tuo lavoro da domani?</li>
+                        <li>In quali situazioni userai questa esperienza?</li>
+                        <li>Come miglioreresti il tuo approccio decisionale?</li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Messaggio per chi non ha raggiunto livello 7 -->
+            <div class="info-box" id="notYetDebriefMessage" style="display: none;">
+                <p>🎯 <strong>Continua a giocare!</strong></p>
+                <p>Il debrief formativo completo sarà disponibile dopo aver superato il <strong>Livello 7</strong></p>
+                <p>Livello attuale: <span id="currentLevelDisplay"></span></p>
+            </div>
+
+            <button onclick="restart()" class="btn-primary">NUOVA PARTITA</button>
+            <button onclick="backToModes()" class="btn-secondary">MENU PRINCIPALE</button>
+        </div>
+    </div>
+
+    <!-- SCHERMATA PAUSA -->
+    <div id="pauseScreen" class="screen">
+        <div class="container">
+            <h1 class="neon-text">PAUSA</h1>
+            <button onclick="resumeGame()" class="btn-primary">RIPRENDI</button>
+            <button onclick="exitToMenu()" class="btn-secondary">ESCI AL MENU</button>
+        </div>
+    </div>
+
+    <!-- Script Socket.io per multiplayer -->
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="game.js"></script>
+</body>
+</html>
