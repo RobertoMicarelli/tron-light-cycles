@@ -10,7 +10,7 @@
 
 ## 🎯 **Demo Live**
 
-🚀 **[Gioca subito online](https://tron-light-cycles-demo.herokuapp.com)** | 📖 **[Guida Rapida](QUICK_START.md)** | 🎓 **[Guida Facilitatore](DEBRIEF_GUIDE.md)**
+🚀 **[Repository GitHub](https://github.com/RobertoMicarelli/tron-light-cycles)** | 📖 **[Guida Rapida](QUICK_START.md)** | 🎓 **[Guida Facilitatore](DEBRIEF_GUIDE.md)**
 
 ---
 
@@ -64,7 +64,7 @@
 ### Opzione 2: Deploy Locale
 ```bash
 # Clona il repository
-git clone https://github.com/[tuo-username]/tron-light-cycles.git
+git clone https://github.com/RobertoMicarelli/tron-light-cycles.git
 cd tron-light-cycles
 
 # Installa dipendenze
@@ -196,8 +196,8 @@ Distribuito sotto licenza MIT. Vedi `LICENSE` per maggiori informazioni.
 
 ## 📞 **Supporto**
 
-- 🐛 **Bug Report**: [Crea un issue](https://github.com/[tuo-username]/tron-light-cycles/issues)
-- 💡 **Feature Request**: [Suggerisci miglioramenti](https://github.com/[tuo-username]/tron-light-cycles/issues)
+- 🐛 **Bug Report**: [Crea un issue](https://github.com/RobertoMicarelli/tron-light-cycles/issues)
+- 💡 **Feature Request**: [Suggerisci miglioramenti](https://github.com/RobertoMicarelli/tron-light-cycles/issues)
 - 📧 **Contatto**: [Email del team]
 
 ---

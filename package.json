@@ -38,10 +38,10 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/[tuo-username]/tron-light-cycles.git"
+    "url": "https://github.com/RobertoMicarelli/tron-light-cycles.git"
   },
   "bugs": {
-    "url": "https://github.com/[tuo-username]/tron-light-cycles/issues"
+    "url": "https://github.com/RobertoMicarelli/tron-light-cycles/issues"
   },
-  "homepage": "https://github.com/[tuo-username]/tron-light-cycles#readme"
+  "homepage": "https://github.com/RobertoMicarelli/tron-light-cycles#readme"
 }
