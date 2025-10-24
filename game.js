@@ -1175,6 +1175,9 @@ function startCampaignLevel() {
     let numEnemies = calculateEnemies(currentLevel);
     console.log(`👾 Livello ${currentLevel}: ${numEnemies} nemici (AI Level ${Math.min(10, 4 + currentLevel)})`);
     
+    // Mostra progressione completa per debug
+    showLevelProgression();
+    
     // Crea player
     let player = new Bike(canvasWidth/2, canvasHeight/2, 1, '#00FFFF', playerData.name, true);
     player.score = playerScore; // Mantieni score tra i round
@@ -1211,19 +1214,53 @@ function startCampaignLevel() {
 }
 
 // Calcola numero di nemici in base al livello
+// NUOVA LOGICA SEMPLIFICATA E CHIARA:
 // Livello 1-3: +1 nemico per livello (1, 2, 3)
-// Livello 4+: +1 nemico ogni 2 livelli vinti (4-5=3, 6-7=4, 8-9=5...)
+// Livello 4-5: 3 nemici (non aumenta)
+// Livello 6-7: 4 nemici (+1)
+// Livello 8-9: 5 nemici (+1)
+// Livello 10-11: 6 nemici (+1)
+// E così via...
 function calculateEnemies(level) {
+    console.log(`🔢 Calcolando nemici per livello ${level}:`);
+    
     if (level <= 3) {
-        return level; // Livello 1=1, 2=2, 3=3
+        // Livelli 1-3: +1 nemico per livello
+        const enemies = level;
+        console.log(`   📊 Livelli 1-3: ${enemies} nemici (tutorial)`);
+        return enemies;
     } else {
         // Dal livello 4: +1 nemico ogni 2 livelli
-        // Formula: 3 + floor((level - 4) / 2)
-        // L4: 3+floor(0/2)=3, L5: 3+floor(1/2)=3
-        // L6: 3+floor(2/2)=4, L7: 3+floor(3/2)=4
-        // L8: 3+floor(4/2)=5, L9: 3+floor(5/2)=5
-        return 3 + Math.floor((level - 4) / 2);
+        // Formula: 3 + floor((level - 3) / 2)
+        // L4: 3+floor(1/2)=3, L5: 3+floor(2/2)=4
+        // L6: 3+floor(3/2)=4, L7: 3+floor(4/2)=5
+        // L8: 3+floor(5/2)=5, L9: 3+floor(6/2)=6
+        const enemies = 3 + Math.floor((level - 3) / 2);
+        console.log(`   📊 Livelli 4+: ${enemies} nemici (formula: 3 + floor((${level} - 3) / 2))`);
+        return enemies;
     }
+}
+
+// Mostra la progressione dei livelli per debug
+function showLevelProgression() {
+    console.log('📊 PROGRESSIONE LIVELLI:');
+    console.log('┌─────────┬─────────┬─────────┬─────────┐');
+    console.log('│ Livello │ Nemici  │ AI Level│ Note    │');
+    console.log('├─────────┼─────────┼─────────┼─────────┤');
+    
+    for (let i = 1; i <= Math.min(currentLevel + 5, 15); i++) {
+        const enemies = calculateEnemies(i);
+        const aiLevel = Math.min(10, 4 + i);
+        const note = i <= 3 ? 'Tutorial' : 
+                    i === 4 || i === 5 ? 'Stabile' :
+                    i % 2 === 0 ? 'Aumenta!' : 'Stabile';
+        
+        const marker = i === currentLevel ? ' 👈' : '';
+        console.log(`│   ${i.toString().padStart(2)}    │    ${enemies}    │    ${aiLevel}    │ ${note.padEnd(8)} │${marker}`);
+    }
+    
+    console.log('└─────────┴─────────┴─────────┴─────────┘');
+    console.log('📈 REGOLA: +1 nemico ogni 2 livelli dal livello 4');
 }
 
 // ===========================
