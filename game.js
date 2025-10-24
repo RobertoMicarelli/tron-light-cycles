@@ -376,6 +376,18 @@ function toggleAudio() {
 }
 
 // ===========================
+// CONFIGURAZIONE VERCEL
+// ===========================
+
+// Rileva se siamo su Vercel
+const IS_VERCEL = window.location.hostname.includes('vercel.app');
+
+// Disabilita multiplayer su Vercel
+if (IS_VERCEL) {
+    console.log('🌐 Modalità Vercel: Solo Campaign disponibile');
+}
+
+// ===========================
 // VARIABILI GLOBALI
 // ===========================
 
@@ -973,6 +985,10 @@ function selectMode(mode) {
     gameMode = mode;
     
     if (mode === 'multiplayer') {
+        if (IS_VERCEL) {
+            alert('🌐 Multiplayer non disponibile su Vercel!\n\nPer giocare in multiplayer usa:\n• Replit (replit.com)\n• Heroku (heroku.com)\n• Railway (railway.app)\n\nLa modalità Campaign funziona perfettamente qui!');
+            return;
+        }
         initMultiplayer();
     } else if (mode === 'campaign') {
         initCampaign();
