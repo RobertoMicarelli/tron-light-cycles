@@ -1135,6 +1135,8 @@ function initCampaign() {
 }
 
 function startCampaignLevel() {
+    console.log(`🎮 Iniziando livello ${currentLevel}, round ${currentRound}`);
+    
     // Reset canvas
     if (canvas) {
         canvas.width = canvasWidth;
@@ -1402,6 +1404,7 @@ function checkRoundEnd() {
             winner.score++;
             if (winner.isPlayer) {
                 stats.roundsWon++;
+                console.log(`🏆 Giocatore vince round! Score: ${winner.score}/2`);
             }
         }
         
@@ -1544,8 +1547,16 @@ function showGameOver() {
     if (winner.score >= 2) {
         playSoundVictory();
         
+        console.log(`🎉 Livello ${currentLevel} completato! Score: ${winner.score}`);
+        
         // Avanza al prossimo livello
         currentLevel++;
+        
+        // RESET IMPORTANTE: Resetta round e score per il nuovo livello
+        currentRound = 1;
+        winner.score = 0;
+        
+        console.log(`🚀 Avanzato al livello ${currentLevel}. Round resettato a ${currentRound}`);
         
         // Mostra debrief completo solo dopo livello 7
         if (currentLevel > 7) {
@@ -1609,10 +1620,6 @@ function showGameOver() {
             
             showScreen('roundEndScreen');
         }
-        
-        // Resetta per il nuovo livello
-        currentRound = 1;
-        winner.score = 0;
         
     } else {
         // Player ha perso - GAME OVER
