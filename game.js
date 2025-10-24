@@ -28,6 +28,7 @@ const MUSIC_FILES = [
     'assets/music/the_net.mp3'
 ];
 let currentMusicIndex = 0;
+let musicChangeTimer = null;
 
 // Inizializza audio context
 function initAudio() {
@@ -61,6 +62,7 @@ function startBackgroundMusic() {
     
     // Seleziona musica casuale
     const musicFile = MUSIC_FILES[currentMusicIndex];
+    console.log(`🎵 Caricando musica: ${musicFile} (${currentMusicIndex + 1}/${MUSIC_FILES.length})`);
     currentMusicIndex = (currentMusicIndex + 1) % MUSIC_FILES.length;
     
     // Carica e riproduci MP3 locale
@@ -82,6 +84,15 @@ function startBackgroundMusic() {
             musicSource.start(0);
             
             console.log(`🎵 Musica TRON caricata: ${musicFile}`);
+            
+            // Cambia musica automaticamente ogni 2 minuti
+            if (musicChangeTimer) {
+                clearTimeout(musicChangeTimer);
+            }
+            musicChangeTimer = setTimeout(() => {
+                console.log('🔄 Cambio automatico musica...');
+                startBackgroundMusic();
+            }, 120000); // 2 minuti
         })
         .catch(error => {
             console.log('Errore caricamento musica locale, uso musica procedurale:', error);
@@ -381,6 +392,17 @@ function toggleAudio() {
             audioContext.suspend();
         }
     }
+}
+
+// Cambia musica manualmente
+function changeMusic() {
+    if (!audioEnabled) {
+        console.log('🎵 Audio disabilitato, non posso cambiare musica');
+        return;
+    }
+    
+    console.log('🎵 Cambio musica manuale...');
+    startBackgroundMusic();
 }
 
 // ===========================
@@ -1151,6 +1173,7 @@ function startCampaignLevel() {
     
     // Calcola numero di nemici in base al livello
     let numEnemies = calculateEnemies(currentLevel);
+    console.log(`👾 Livello ${currentLevel}: ${numEnemies} nemici (AI Level ${Math.min(10, 4 + currentLevel)})`);
     
     // Crea player
     let player = new Bike(canvasWidth/2, canvasHeight/2, 1, '#00FFFF', playerData.name, true);
