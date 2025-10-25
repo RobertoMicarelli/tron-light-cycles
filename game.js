@@ -1699,6 +1699,11 @@ function checkRoundEnd() {
                 stats.roundsWon++;
                 let requiredWins = currentLevel >= 5 ? 1 : 2;
                 console.log(`🏆 Giocatore vince round! Score: ${winner.score}/${requiredWins} (Livello ${currentLevel})`);
+                
+                // DEBUG: Controlla se dovrebbe avanzare di livello
+                if (winner.score >= requiredWins) {
+                    console.log(`🎯 Player ha raggiunto ${requiredWins} round vinti! Dovrebbe avanzare di livello!`);
+                }
             } else {
                 console.log(`💀 ${winner.name} vince round! Score: ${winner.score}`);
             }
