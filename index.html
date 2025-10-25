@@ -107,20 +107,23 @@
 
         <!-- Controlli Touch per Mobile -->
         <div class="touch-controls">
-            <!-- Frecce di movimento -->
-            <div class="touch-arrow-row">
-                <div class="touch-arrow" data-direction="up">↑</div>
-            </div>
-            <div class="touch-arrow-row">
-                <div class="touch-arrow" data-direction="left">←</div>
-                <div class="touch-arrow" data-direction="down">↓</div>
-                <div class="touch-arrow" data-direction="right">→</div>
-            </div>
-            
-            <!-- Controlli velocità -->
-            <div class="touch-speed-controls">
-                <div class="touch-speed-btn" data-action="speed-up">+V</div>
-                <div class="touch-speed-btn" data-action="speed-down">-V</div>
+            <!-- Layout: +/- a sinistra, frecce a destra -->
+            <div class="touch-controls-container">
+                <!-- Controlli velocità a sinistra -->
+                <div class="touch-speed-section">
+                    <div class="touch-speed-btn" data-action="speed-up">+</div>
+                    <div class="touch-speed-btn" data-action="speed-down">−</div>
+                </div>
+                
+                <!-- Frecce di movimento a destra -->
+                <div class="touch-arrows-section">
+                    <div class="touch-arrow-grid">
+                        <div class="touch-arrow" data-direction="up">↑</div>
+                        <div class="touch-arrow" data-direction="left">←</div>
+                        <div class="touch-arrow" data-direction="down">↓</div>
+                        <div class="touch-arrow" data-direction="right">→</div>
+                    </div>
+                </div>
             </div>
         </div>
 

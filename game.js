@@ -56,15 +56,28 @@ function initTouchControls() {
         // Touch start
         arrow.addEventListener('touchstart', (e) => {
             e.preventDefault();
+            e.stopPropagation();
             handleTouchDirection(direction, true);
             arrow.style.background = 'rgba(0, 255, 255, 0.4)';
+            console.log(`📱 Touch: ${direction} pressed`);
         });
         
         // Touch end
         arrow.addEventListener('touchend', (e) => {
             e.preventDefault();
+            e.stopPropagation();
             handleTouchDirection(direction, false);
             arrow.style.background = 'rgba(0, 255, 255, 0.2)';
+            console.log(`📱 Touch: ${direction} released`);
+        });
+        
+        // Touch cancel (importante per iOS)
+        arrow.addEventListener('touchcancel', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            handleTouchDirection(direction, false);
+            arrow.style.background = 'rgba(0, 255, 255, 0.2)';
+            console.log(`📱 Touch: ${direction} cancelled`);
         });
         
         // Mouse events per testing su desktop
@@ -88,12 +101,21 @@ function initTouchControls() {
         
         btn.addEventListener('touchstart', (e) => {
             e.preventDefault();
+            e.stopPropagation();
             handleTouchSpeed(action);
             btn.style.background = 'rgba(255, 215, 0, 0.4)';
+            console.log(`📱 Touch: ${action} pressed`);
         });
         
         btn.addEventListener('touchend', (e) => {
             e.preventDefault();
+            e.stopPropagation();
+            btn.style.background = 'rgba(255, 215, 0, 0.2)';
+        });
+        
+        btn.addEventListener('touchcancel', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
             btn.style.background = 'rgba(255, 215, 0, 0.2)';
         });
         
@@ -194,6 +216,14 @@ function initAudio() {
         musicGainNode.connect(audioContext.destination);
         musicGainNode.gain.value = 0.3; // Volume musica
         
+        console.log('🎵 Audio context inizializzato:', audioContext.state);
+        
+        // Su iOS, l'audio context inizia in "suspended" - deve essere risvegliato
+        if (audioContext.state === 'suspended') {
+            console.log('📱 iOS: Audio context sospeso, richiedo attivazione...');
+            // L'audio si attiverà al primo touch/click
+        }
+        
         // Avvia musica di sottofondo
         if (audioEnabled) {
             startBackgroundMusic();
@@ -207,6 +237,18 @@ function initAudio() {
 // Musica di sottofondo da file MP3 locali
 function startBackgroundMusic() {
     if (!audioContext || !audioEnabled) return;
+    
+    // Su iOS, assicurati che l'audio context sia attivo
+    if (audioContext.state === 'suspended') {
+        console.log('📱 iOS: Attivando audio context...');
+        audioContext.resume().then(() => {
+            console.log('✅ Audio context attivato su iOS');
+            startBackgroundMusic(); // Riprova dopo l'attivazione
+        }).catch(e => {
+            console.log('❌ Errore attivazione audio iOS:', e);
+        });
+        return;
+    }
     
     // Fermia musica esistente
     if (musicSource) {
@@ -1620,8 +1662,13 @@ function checkRoundEnd() {
             winner.score++;
             if (winner.isPlayer) {
                 stats.roundsWon++;
-                console.log(`🏆 Giocatore vince round! Score: ${winner.score}/2`);
+                let requiredWins = currentLevel >= 5 ? 1 : 2;
+                console.log(`🏆 Giocatore vince round! Score: ${winner.score}/${requiredWins} (Livello ${currentLevel})`);
+            } else {
+                console.log(`💀 ${winner.name} vince round! Score: ${winner.score}`);
             }
+        } else {
+            console.log(`🤝 Pareggio! Nessun vincitore.`);
         }
         
         updateHUD();
@@ -1681,19 +1728,30 @@ function continueToNextLevel() {
         return;
     }
     
-    // CAMPAIGN MODE
-    // Controlla se qualcuno ha già vinto (2 round su 3)
+    // CAMPAIGN MODE - LOGICA CORRETTA
     let player = players[0];
     let maxEnemyScore = Math.max(...enemies.map(e => e.score || 0));
     
-    if (player.score >= 2) {
+    console.log(`📊 Round ${currentRound} completato:`, {
+        playerScore: player.score,
+        maxEnemyScore: maxEnemyScore,
+        currentLevel: currentLevel
+    });
+    
+    // Per livelli alti (5+), riduci la difficoltà: basta 1 round vinto
+    let requiredWins = currentLevel >= 5 ? 1 : 2;
+    
+    // Controlla se qualcuno ha già vinto
+    if (player.score >= requiredWins) {
         // Player ha vinto il livello! Avanza
+        console.log(`🎉 Player vince livello ${currentLevel}! (${player.score}/${requiredWins} round) Avanzando...`);
         showGameOver(); // Questa funzione gestirà l'avanzamento livello
         return;
     }
     
-    if (maxEnemyScore >= 2) {
+    if (maxEnemyScore >= requiredWins) {
         // Un nemico ha vinto - game over
+        console.log(`💀 Nemico vince livello ${currentLevel}. Game Over.`);
         showGameOver();
         return;
     }
@@ -1703,9 +1761,17 @@ function continueToNextLevel() {
     
     if (currentRound > maxRounds) {
         // Finiti tutti i round - chi ha più punti vince
-        showGameOver();
+        console.log(`⏰ Finiti tutti i round del livello ${currentLevel}. Determinando vincitore...`);
+        if (player.score > maxEnemyScore) {
+            console.log(`🎉 Player vince per punti! Avanzando...`);
+            showGameOver(); // Player vince per punti
+        } else {
+            console.log(`💀 Nemici vincono per punti. Game Over.`);
+            showGameOver(); // Nemici vincono per punti
+        }
     } else {
         // Continua al prossimo round dello stesso livello
+        console.log(`➡️ Continuando al round ${currentRound} del livello ${currentLevel}`);
         startCampaignLevel();
     }
 }
@@ -1759,8 +1825,9 @@ function showGameOver() {
     // CAMPAIGN MODE
     winner = players[0];
     
-    // Se il player ha vinto questo livello (2 round su 3)
-    if (winner.score >= 2) {
+    // Se il player ha vinto questo livello
+    let requiredWins = currentLevel >= 5 ? 1 : 2;
+    if (winner.score >= requiredWins) {
         playSoundVictory();
         
         console.log(`🎉 Livello ${currentLevel} completato! Score: ${winner.score}`);
@@ -1952,10 +2019,31 @@ window.addEventListener('load', () => {
         }
     });
     
-    // Inizializza audio al primo click/interazione
+    // Inizializza audio al primo click/interazione (importante per iOS)
     document.addEventListener('click', () => {
         if (!audioContext) {
             initAudio();
+        } else if (audioContext.state === 'suspended') {
+            console.log('📱 iOS: Attivando audio al primo touch...');
+            audioContext.resume().then(() => {
+                console.log('✅ Audio attivato su iOS');
+                if (audioEnabled) {
+                    startBackgroundMusic();
+                }
+            });
+        }
+    }, { once: true });
+    
+    // Aggiungi anche touch events per iOS
+    document.addEventListener('touchstart', () => {
+        if (audioContext && audioContext.state === 'suspended') {
+            console.log('📱 iOS: Attivando audio al primo touch...');
+            audioContext.resume().then(() => {
+                console.log('✅ Audio attivato su iOS via touch');
+                if (audioEnabled) {
+                    startBackgroundMusic();
+                }
+            });
         }
     }, { once: true });
 });
