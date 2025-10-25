@@ -1964,6 +1964,10 @@ function showGameOver() {
             }
             
             showScreen('roundEndScreen');
+            
+            // IMPORTANTE: Non continuare automaticamente! Aspetta che l'utente clicchi "Continue"
+            console.log(`⏸️ Livello ${currentLevel - 1} completato! Aspettando click utente per continuare...`);
+            return; // Ferma qui e aspetta il click
         }
         
     } else {
