@@ -38,9 +38,16 @@ console.log(`📱 Device Detection:`, {
 
 // Inizializza controlli touch per mobile
 function initTouchControls() {
-    if (!isMobile) return;
+    console.log('📱 Inizializzando controlli touch...', {
+        isMobile,
+        isMobilePortrait,
+        screenSize: `${window.innerWidth}x${window.innerHeight}`
+    });
     
-    console.log('📱 Inizializzando controlli touch...');
+    if (!isMobile) {
+        console.log('📱 Non è un device mobile, saltando controlli touch');
+        return;
+    }
     
     // Aggiungi classe mobile al body
     document.body.classList.add('mobile-device');
@@ -48,10 +55,15 @@ function initTouchControls() {
         document.body.classList.add('mobile-portrait');
     }
     
+    console.log('📱 Classi mobile aggiunte al body');
+    
     // Event listeners per frecce di movimento
     const touchArrows = document.querySelectorAll('.touch-arrow');
-    touchArrows.forEach(arrow => {
+    console.log(`📱 Trovate ${touchArrows.length} frecce touch`);
+    
+    touchArrows.forEach((arrow, index) => {
         const direction = arrow.dataset.direction;
+        console.log(`📱 Configurando freccia ${index + 1}: ${direction}`);
         
         // Touch start
         arrow.addEventListener('touchstart', (e) => {
@@ -96,8 +108,11 @@ function initTouchControls() {
     
     // Event listeners per controlli velocità
     const speedButtons = document.querySelectorAll('.touch-speed-btn');
-    speedButtons.forEach(btn => {
+    console.log(`📱 Trovati ${speedButtons.length} pulsanti velocità`);
+    
+    speedButtons.forEach((btn, index) => {
         const action = btn.dataset.action;
+        console.log(`📱 Configurando pulsante velocità ${index + 1}: ${action}`);
         
         btn.addEventListener('touchstart', (e) => {
             e.preventDefault();
@@ -1716,6 +1731,13 @@ function showRoundEnd(winner) {
 
 // Nuova funzione per continuare al prossimo livello/round
 function continueToNextLevel() {
+    console.log('🎮 continueToNextLevel() chiamata!', {
+        gameMode,
+        currentLevel,
+        currentRound,
+        playerScore: players[0]?.score || 0
+    });
+    
     // Se siamo in multiplayer, logica diversa
     if (gameMode === 'multiplayer') {
         currentRound++;
