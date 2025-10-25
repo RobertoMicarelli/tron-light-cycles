@@ -13,6 +13,162 @@
    =========================== */
 
 // ===========================
+// SISTEMA MOBILE DETECTION
+// ===========================
+
+// Rilevamento device mobile e orientamento
+const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || 
+                 (navigator.maxTouchPoints && navigator.maxTouchPoints > 2) ||
+                 window.innerWidth <= 768;
+
+const isPortrait = window.innerHeight > window.innerWidth;
+const isMobilePortrait = isMobile && isPortrait;
+
+console.log(`📱 Device Detection:`, {
+    isMobile,
+    isPortrait,
+    isMobilePortrait,
+    screenSize: `${window.innerWidth}x${window.innerHeight}`,
+    userAgent: navigator.userAgent.substring(0, 50) + '...'
+});
+
+// ===========================
+// SISTEMA TOUCH CONTROLS
+// ===========================
+
+// Inizializza controlli touch per mobile
+function initTouchControls() {
+    if (!isMobile) return;
+    
+    console.log('📱 Inizializzando controlli touch...');
+    
+    // Aggiungi classe mobile al body
+    document.body.classList.add('mobile-device');
+    if (isMobilePortrait) {
+        document.body.classList.add('mobile-portrait');
+    }
+    
+    // Event listeners per frecce di movimento
+    const touchArrows = document.querySelectorAll('.touch-arrow');
+    touchArrows.forEach(arrow => {
+        const direction = arrow.dataset.direction;
+        
+        // Touch start
+        arrow.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            handleTouchDirection(direction, true);
+            arrow.style.background = 'rgba(0, 255, 255, 0.4)';
+        });
+        
+        // Touch end
+        arrow.addEventListener('touchend', (e) => {
+            e.preventDefault();
+            handleTouchDirection(direction, false);
+            arrow.style.background = 'rgba(0, 255, 255, 0.2)';
+        });
+        
+        // Mouse events per testing su desktop
+        arrow.addEventListener('mousedown', (e) => {
+            e.preventDefault();
+            handleTouchDirection(direction, true);
+            arrow.style.background = 'rgba(0, 255, 255, 0.4)';
+        });
+        
+        arrow.addEventListener('mouseup', (e) => {
+            e.preventDefault();
+            handleTouchDirection(direction, false);
+            arrow.style.background = 'rgba(0, 255, 255, 0.2)';
+        });
+    });
+    
+    // Event listeners per controlli velocità
+    const speedButtons = document.querySelectorAll('.touch-speed-btn');
+    speedButtons.forEach(btn => {
+        const action = btn.dataset.action;
+        
+        btn.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            handleTouchSpeed(action);
+            btn.style.background = 'rgba(255, 215, 0, 0.4)';
+        });
+        
+        btn.addEventListener('touchend', (e) => {
+            e.preventDefault();
+            btn.style.background = 'rgba(255, 215, 0, 0.2)';
+        });
+        
+        // Mouse events per testing
+        btn.addEventListener('mousedown', (e) => {
+            e.preventDefault();
+            handleTouchSpeed(action);
+            btn.style.background = 'rgba(255, 215, 0, 0.4)';
+        });
+        
+        btn.addEventListener('mouseup', (e) => {
+            e.preventDefault();
+            btn.style.background = 'rgba(255, 215, 0, 0.2)';
+        });
+    });
+    
+    console.log('✅ Controlli touch inizializzati');
+}
+
+// Ridimensiona canvas per mobile
+function resizeCanvas() {
+    const canvas = document.getElementById('gameCanvas');
+    if (canvas) {
+        // Su mobile, mantieni il canvas quadrato
+        if (isMobilePortrait) {
+            const maxSize = Math.min(window.innerWidth - 20, 400);
+            canvas.width = maxSize;
+            canvas.height = maxSize;
+            canvasWidth = maxSize;
+            canvasHeight = maxSize;
+            console.log(`📱 Canvas mobile ridimensionato: ${maxSize}x${maxSize}`);
+        } else {
+            canvas.width = canvasWidth;
+            canvas.height = canvasHeight;
+        }
+    }
+}
+
+// Gestisce input direzione da touch
+function handleTouchDirection(direction, isPressed) {
+    if (!gameRunning) return;
+    
+    const keyMap = {
+        'up': 'ArrowUp',
+        'down': 'ArrowDown',
+        'left': 'ArrowLeft',
+        'right': 'ArrowRight'
+    };
+    
+    const key = keyMap[direction];
+    if (key) {
+        if (isPressed) {
+            handleKeyDown({ code: key, preventDefault: () => {} });
+        } else {
+            handleKeyUp({ code: key, preventDefault: () => {} });
+        }
+    }
+}
+
+// Gestisce input velocità da touch
+function handleTouchSpeed(action) {
+    if (!gameRunning) return;
+    
+    const keyMap = {
+        'speed-up': 'KeyZ',
+        'speed-down': 'KeyX'
+    };
+    
+    const key = keyMap[action];
+    if (key) {
+        handleKeyDown({ code: key, preventDefault: () => {} });
+    }
+}
+
+// ===========================
 // SISTEMA AUDIO
 // ===========================
 
@@ -1766,6 +1922,35 @@ window.addEventListener('load', () => {
     
     console.log('🎮 TRON Light Cycles caricato!');
     console.log('🧠 Sistema formativo pronto');
+    
+    // Inizializza controlli touch per mobile
+    initTouchControls();
+    
+    // Gestione cambio orientamento
+    window.addEventListener('orientationchange', () => {
+        setTimeout(() => {
+            console.log('📱 Orientamento cambiato:', {
+                width: window.innerWidth,
+                height: window.innerHeight,
+                orientation: window.innerHeight > window.innerWidth ? 'portrait' : 'landscape'
+            });
+            
+            // Riapplica classi mobile
+            document.body.classList.toggle('mobile-portrait', window.innerHeight > window.innerWidth);
+            
+            // Ridimensiona canvas se necessario
+            if (gameRunning) {
+                resizeCanvas();
+            }
+        }, 100);
+    });
+    
+    // Gestione resize finestra
+    window.addEventListener('resize', () => {
+        if (gameRunning) {
+            resizeCanvas();
+        }
+    });
     
     // Inizializza audio al primo click/interazione
     document.addEventListener('click', () => {
