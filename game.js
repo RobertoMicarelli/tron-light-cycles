@@ -668,6 +668,7 @@ let keys = {};
 let gameLoop = null;
 let frameCount = 0;
 let isPaused = false;
+let gameRunning = false;
 
 // Countdown
 let countdown = 3;
@@ -1250,15 +1251,33 @@ function backToModes() {
 // ===========================
 
 function initMultiplayer() {
+    if (IS_VERCEL) {
+        alert('🌐 Multiplayer non disponibile su Vercel!\n\nPer giocare in multiplayer usa:\n• Replit (replit.com)\n• Heroku (heroku.com)\n• Railway (railway.app)\n\nLa modalità Campaign funziona perfettamente qui!');
+        return;
+    }
+    
     showScreen('matchmakingScreen');
     
     // Inizializza Socket.io
     if (!socket) {
-        socket = io();
+        try {
+            socket = io();
+        } catch (error) {
+            console.log('❌ Errore connessione Socket.io:', error);
+            alert('⚠️ Server multiplayer non disponibile!\n\nUsa la modalità Campaign per giocare.');
+            backToModes();
+            return;
+        }
         
         socket.on('connect', () => {
-            console.log('Connesso al server');
+            console.log('✅ Connesso al server multiplayer');
             socket.emit('findMatch', playerData);
+        });
+        
+        socket.on('connect_error', (error) => {
+            console.log('❌ Errore connessione Socket.io:', error);
+            alert('⚠️ Server multiplayer non disponibile!\n\nUsa la modalità Campaign per giocare.');
+            backToModes();
         });
         
         socket.on('waitingForOpponent', (data) => {
@@ -1503,6 +1522,7 @@ function startCountdown() {
 
 function startGame() {
     gameState = 'playing';
+    gameRunning = true;
     frameCount = 0;
     
     // Avvia game loop
@@ -1692,6 +1712,7 @@ function checkRoundEnd() {
 }
 
 function stopGame() {
+    gameRunning = false;
     if (gameLoop) {
         clearInterval(gameLoop);
         gameLoop = null;
@@ -1820,6 +1841,13 @@ function nextRound() {
 }
 
 function showGameOver() {
+    console.log('🎮 showGameOver() chiamata!', {
+        gameMode,
+        currentLevel,
+        currentRound,
+        playerScore: players[0]?.score || 0
+    });
+    
     let winner;
     
     if (gameMode === 'multiplayer') {
@@ -1849,6 +1877,13 @@ function showGameOver() {
     
     // Se il player ha vinto questo livello
     let requiredWins = currentLevel >= 5 ? 1 : 2;
+    console.log(`🔍 Controllo avanzamento livello:`, {
+        currentLevel,
+        playerScore: winner.score,
+        requiredWins,
+        willAdvance: winner.score >= requiredWins
+    });
+    
     if (winner.score >= requiredWins) {
         playSoundVictory();
         
