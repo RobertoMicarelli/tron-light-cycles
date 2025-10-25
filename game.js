@@ -24,6 +24,16 @@ const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/
 const isPortrait = window.innerHeight > window.innerWidth;
 const isMobilePortrait = isMobile && isPortrait;
 
+// Debug mobile detection
+console.log('📱 Mobile Detection:', {
+    userAgent: navigator.userAgent,
+    maxTouchPoints: navigator.maxTouchPoints,
+    screenSize: `${window.innerWidth}x${window.innerHeight}`,
+    isMobile,
+    isPortrait,
+    isMobilePortrait
+});
+
 console.log(`📱 Device Detection:`, {
     isMobile,
     isPortrait,
@@ -71,7 +81,11 @@ function initTouchControls() {
             e.stopPropagation();
             handleTouchDirection(direction, true);
             arrow.style.background = 'rgba(0, 255, 255, 0.4)';
+            arrow.style.transform = 'scale(0.9)';
             console.log(`📱 Touch: ${direction} pressed`);
+            
+            // Test visivo - mostra feedback immediato
+            arrow.style.boxShadow = '0 0 20px rgba(0, 255, 255, 0.8)';
         });
         
         // Touch end
@@ -80,6 +94,8 @@ function initTouchControls() {
             e.stopPropagation();
             handleTouchDirection(direction, false);
             arrow.style.background = 'rgba(0, 255, 255, 0.2)';
+            arrow.style.transform = 'scale(1)';
+            arrow.style.boxShadow = '0 0 10px rgba(0, 255, 255, 0.4)';
             console.log(`📱 Touch: ${direction} released`);
         });
         
@@ -89,6 +105,8 @@ function initTouchControls() {
             e.stopPropagation();
             handleTouchDirection(direction, false);
             arrow.style.background = 'rgba(0, 255, 255, 0.2)';
+            arrow.style.transform = 'scale(1)';
+            arrow.style.boxShadow = '0 0 10px rgba(0, 255, 255, 0.4)';
             console.log(`📱 Touch: ${direction} cancelled`);
         });
         
@@ -148,6 +166,21 @@ function initTouchControls() {
     });
     
     console.log('✅ Controlli touch inizializzati');
+    
+    // Test visivo per verificare che i controlli siano funzionanti
+    setTimeout(() => {
+        console.log('📱 Test controlli touch...');
+        const touchArrows = document.querySelectorAll('.touch-arrow');
+        const speedButtons = document.querySelectorAll('.touch-speed-btn');
+        console.log(`📱 Controlli trovati: ${touchArrows.length} frecce, ${speedButtons.length} pulsanti velocità`);
+        
+        // Verifica che i controlli siano visibili
+        if (touchArrows.length > 0) {
+            console.log('📱 Controlli touch visibili e pronti!');
+        } else {
+            console.log('❌ Controlli touch non trovati!');
+        }
+    }, 500);
 }
 
 // Ridimensiona canvas per mobile
@@ -171,7 +204,12 @@ function resizeCanvas() {
 
 // Gestisce input direzione da touch
 function handleTouchDirection(direction, isPressed) {
-    if (!gameRunning) return;
+    console.log(`📱 Touch direction: ${direction}, pressed: ${isPressed}, gameRunning: ${gameRunning}`);
+    
+    // Permetti controlli anche se il gioco non è ancora iniziato (per test)
+    if (typeof gameRunning === 'undefined') {
+        console.log('📱 gameRunning non definito, permettendo controlli per test');
+    }
     
     const keyMap = {
         'up': 'ArrowUp',
@@ -182,6 +220,7 @@ function handleTouchDirection(direction, isPressed) {
     
     const key = keyMap[direction];
     if (key) {
+        console.log(`📱 Simulando tasto: ${key}`);
         if (isPressed) {
             handleKeyDown({ code: key, preventDefault: () => {} });
         } else {
@@ -192,7 +231,12 @@ function handleTouchDirection(direction, isPressed) {
 
 // Gestisce input velocità da touch
 function handleTouchSpeed(action) {
-    if (!gameRunning) return;
+    console.log(`📱 Touch speed: ${action}, gameRunning: ${gameRunning}`);
+    
+    // Permetti controlli anche se il gioco non è ancora iniziato (per test)
+    if (typeof gameRunning === 'undefined') {
+        console.log('📱 gameRunning non definito, permettendo controlli per test');
+    }
     
     const keyMap = {
         'speed-up': 'KeyZ',
@@ -201,6 +245,7 @@ function handleTouchSpeed(action) {
     
     const key = keyMap[action];
     if (key) {
+        console.log(`📱 Simulando tasto velocità: ${key}`);
         handleKeyDown({ code: key, preventDefault: () => {} });
     }
 }
@@ -1194,6 +1239,18 @@ function showScreen(screenId) {
     document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
     document.getElementById(screenId).classList.add('active');
     gameState = screenId.replace('Screen', '');
+    
+    // Gestione specifica per schermata di gioco
+    if (screenId === 'gameScreen') {
+        resizeCanvas();
+        // Reinizializza controlli touch quando si entra nel gioco
+        if (isMobile) {
+            console.log('📱 Reinizializzando controlli touch per schermata di gioco');
+            setTimeout(() => {
+                initTouchControls();
+            }, 100); // Piccolo delay per assicurarsi che il DOM sia pronto
+        }
+    }
 }
 
 // ===========================
