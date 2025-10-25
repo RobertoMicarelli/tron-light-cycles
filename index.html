@@ -34,13 +34,14 @@
             <p class="player-welcome">Benvenuto, <span id="welcomeName"></span></p>
 
             <div class="mode-selection">
-                <div class="mode-card" onclick="selectMode('multiplayer')">
+                <div class="mode-card" onclick="showMultiplayerOptions()">
                     <h2>🌐 MULTIPLAYER ONLINE</h2>
-                    <p>Sfida un altro giocatore in tempo reale</p>
-                    <p class="mode-detail">• Entrambi usano le frecce direzionali</p>
-                    <p class="mode-detail">• Sistema di turnazione automatica</p>
-                    <p class="mode-detail">• Chat integrata</p>
-                    <button class="btn-primary">CERCA AVVERSARIO</button>
+                    <p>Sfida 2-4 giocatori in tempo reale</p>
+                    <p class="mode-detail">• 2p: Migliore di 3 su 5 round</p>
+                    <p class="mode-detail">• 3p: Migliore di 3 su 7 round</p>
+                    <p class="mode-detail">• 4p: Migliore di 3 su 10 round</p>
+                    <p class="mode-detail">• CPU aggiuntive ogni 3 round</p>
+                    <button class="btn-primary">SELECCIONA GIOCATORI</button>
                 </div>
 
                 <div class="mode-card" onclick="selectMode('campaign')">
@@ -57,13 +58,50 @@
         </div>
     </div>
 
+    <!-- SCHERMATA SELEZIONE GIOCATORI MULTIPLAYER -->
+    <div id="multiplayerOptionsScreen" class="screen">
+        <div class="container">
+            <h1 class="neon-text">MULTIPLAYER</h1>
+            <p class="player-welcome">Scegli il numero di giocatori</p>
+
+            <div class="player-selection">
+                <div class="player-option" onclick="selectPlayerCount(2)">
+                    <h2>👥 DUELO (2 GIOCATORI)</h2>
+                    <p>Migliore di 3 su 5 round</p>
+                    <p class="mode-detail">• Partita veloce e intensa</p>
+                    <p class="mode-detail">• Perfetto per sfide 1v1</p>
+                    <button class="btn-primary">2 GIOCATORI</button>
+                </div>
+
+                <div class="player-option" onclick="selectPlayerCount(3)">
+                    <h2>🔺 TRIANGOLO (3 GIOCATORI)</h2>
+                    <p>Migliore di 3 su 7 round</p>
+                    <p class="mode-detail">• Strategia a tre vie</p>
+                    <p class="mode-detail">• Alleanze temporanee</p>
+                    <button class="btn-primary">3 GIOCATORI</button>
+                </div>
+
+                <div class="player-option" onclick="selectPlayerCount(4)">
+                    <h2>⬜ QUADRATO (4 GIOCATORI)</h2>
+                    <p>Migliore di 3 su 10 round</p>
+                    <p class="mode-detail">• Caos totale garantito</p>
+                    <p class="mode-detail">• CPU ogni 3 round</p>
+                    <button class="btn-primary">4 GIOCATORI</button>
+                </div>
+            </div>
+
+            <button onclick="backToModes()" class="btn-secondary">INDIETRO</button>
+        </div>
+    </div>
+
     <!-- SCHERMATA MATCHMAKING -->
     <div id="matchmakingScreen" class="screen">
         <div class="container">
             <h1 class="neon-text">MATCHMAKING</h1>
             <div class="spinner"></div>
-            <p class="waiting-text">Cercando avversario...</p>
+            <p class="waiting-text">Cercando giocatori...</p>
             <p id="waitingPlayers">Giocatori in attesa: 0</p>
+            <p id="roomInfo">Stanza: -</p>
             <button onclick="cancelMatchmaking()" class="btn-secondary">ANNULLA</button>
         </div>
     </div>

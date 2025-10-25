@@ -1233,10 +1233,28 @@ function selectMode(mode) {
             alert('🌐 Multiplayer non disponibile su Vercel!\n\nPer giocare in multiplayer usa:\n• Replit (replit.com)\n• Heroku (heroku.com)\n• Railway (railway.app)\n\nLa modalità Campaign funziona perfettamente qui!');
             return;
         }
-        initMultiplayer();
+        showMultiplayerOptions();
     } else if (mode === 'campaign') {
         initCampaign();
     }
+}
+
+// ===========================
+// MULTIPLAYER OPTIONS
+// ===========================
+
+function showMultiplayerOptions() {
+    showScreen('multiplayerOptionsScreen');
+}
+
+function selectPlayerCount(playerCount) {
+    console.log(`🎮 Selezionato ${playerCount} giocatori per multiplayer`);
+    
+    // Salva il numero di giocatori preferito
+    window.preferredPlayers = playerCount;
+    
+    // Inizia il matchmaking
+    initMultiplayer(playerCount);
 }
 
 function backToModes() {
@@ -1250,13 +1268,16 @@ function backToModes() {
 // MULTIPLAYER ONLINE
 // ===========================
 
-function initMultiplayer() {
+function initMultiplayer(playerCount = 2) {
     if (IS_VERCEL) {
         alert('🌐 Multiplayer non disponibile su Vercel!\n\nPer giocare in multiplayer usa:\n• Replit (replit.com)\n• Heroku (heroku.com)\n• Railway (railway.app)\n\nLa modalità Campaign funziona perfettamente qui!');
         return;
     }
     
     showScreen('matchmakingScreen');
+    
+    // Aggiorna playerData con il numero di giocatori preferito
+    playerData.preferredPlayers = playerCount;
     
     // Inizializza Socket.io
     if (!socket) {
@@ -1280,17 +1301,25 @@ function initMultiplayer() {
             backToModes();
         });
         
-        socket.on('waitingForOpponent', (data) => {
+        socket.on('roomCreated', (data) => {
+            console.log(`🏠 Stanza creata: ${data.roomId} (${data.playerCount}/${data.totalPlayers})`);
+            document.getElementById('roomInfo').textContent = `Stanza: ${data.roomId}`;
             document.getElementById('waitingPlayers').textContent = 
-                `Giocatori in attesa: ${data.waitingCount}`;
+                `Aspettando ${data.totalPlayers - data.playerCount} giocatori...`;
         });
         
-        socket.on('matchFound', (data) => {
+        socket.on('playerJoined', (data) => {
+            console.log(`👥 ${data.playerName} si è unito alla stanza`);
+            document.getElementById('waitingPlayers').textContent = 
+                `Giocatori: ${data.playerCount}/${data.totalPlayers}`;
+        });
+        
+        socket.on('gameStarted', (data) => {
+            console.log(`🚀 Partita iniziata!`, data);
             roomId = data.roomId;
-            playerData.isPlayer1 = data.isPlayer1;
             
-            // Setup gioco multiplayer
-            setupMultiplayerGame(data);
+            // Setup gioco multiplayer avanzato
+            setupAdvancedMultiplayerGame(data);
         });
         
         socket.on('opponentMove', (data) => {
@@ -1298,10 +1327,22 @@ function initMultiplayer() {
             updateOpponentPosition(data);
         });
         
-        socket.on('opponentDisconnected', () => {
-            alert('Avversario disconnesso!');
+        socket.on('playerDisconnected', (data) => {
+            console.log(`❌ ${data.playerName} disconnesso`);
+            alert(`${data.playerName} si è disconnesso!`);
             backToModes();
         });
+        
+        socket.on('roundEnded', (data) => {
+            console.log(`🎮 Round finito:`, data);
+            handleMultiplayerRoundEnd(data);
+        });
+        
+        socket.on('gameEnded', (data) => {
+            console.log(`🏆 Partita finita:`, data);
+            handleMultiplayerGameEnd(data);
+        });
+        
     } else {
         socket.emit('findMatch', playerData);
     }
@@ -1337,6 +1378,164 @@ function setupMultiplayerGame(matchData) {
     // Mostra schermata gioco e inizia countdown
     showScreen('gameScreen');
     startCountdown();
+}
+
+function setupAdvancedMultiplayerGame(gameData) {
+    console.log(`🎮 Setup multiplayer avanzato:`, gameData);
+    
+    // Reset canvas
+    if (canvas) {
+        canvas.width = canvasWidth;
+        canvas.height = canvasHeight;
+    }
+    
+    // Crea tutti i giocatori
+    players = [];
+    allEntities = [];
+    
+    // Colori per i giocatori
+    const colors = ['#00FFFF', '#FFD700', '#FF6600', '#00FF00'];
+    const positions = [
+        { x: 50, y: canvasHeight/2, direction: 1 },           // Sinistra
+        { x: canvasWidth-50, y: canvasHeight/2, direction: 3 }, // Destra
+        { x: canvasWidth/2, y: 50, direction: 2 },            // Sopra
+        { x: canvasWidth/2, y: canvasHeight-50, direction: 0 } // Sotto
+    ];
+    
+    // Trova il nostro giocatore
+    let myPlayerIndex = -1;
+    gameData.players.forEach((player, index) => {
+        if (player.id === socket.id) {
+            myPlayerIndex = index;
+        }
+    });
+    
+    // Crea tutti i giocatori
+    gameData.players.forEach((player, index) => {
+        let pos = positions[index];
+        let isMe = (player.id === socket.id);
+        let bike = new Bike(pos.x, pos.y, pos.direction, colors[index], player.name, isMe);
+        players.push(bike);
+        allEntities.push(bike);
+    });
+    
+    // Setup variabili di gioco
+    currentRound = 1;
+    maxRounds = gameData.gameConfig.maxRounds;
+    requiredWins = gameData.gameConfig.requiredWins;
+    
+    // Aggiorna HUD
+    updateHUD();
+    
+    // Inizia il gioco
+    showScreen('gameScreen');
+    startCountdown();
+    
+    console.log(`🎮 Partita multiplayer iniziata con ${players.length} giocatori`);
+}
+
+function handleMultiplayerRoundEnd(data) {
+    console.log(`🎮 Round finito:`, data);
+    
+    // Aggiorna punteggi
+    if (data.scores) {
+        // Aggiorna HUD con i punteggi
+        updateMultiplayerHUD(data.scores);
+    }
+    
+    // Se c'è una CPU aggiuntiva, aggiungila
+    if (data.addCPU) {
+        addCPUPlayer();
+    }
+    
+    // Continua al prossimo round
+    setTimeout(() => {
+        startMultiplayerRound();
+    }, 2000);
+}
+
+function handleMultiplayerGameEnd(data) {
+    console.log(`🏆 Partita finita:`, data);
+    
+    // Determina il vincitore
+    let winner = null;
+    players.forEach(player => {
+        if (player.name === data.winner) {
+            winner = player;
+        }
+    });
+    
+    // Mostra schermata di fine partita
+    showMultiplayerGameOver(winner, data.finalScores);
+}
+
+function addCPUPlayer() {
+    console.log(`🤖 Aggiungendo CPU aggiuntiva!`);
+    
+    // Trova una posizione libera
+    let positions = [
+        { x: canvasWidth/4, y: canvasHeight/4, direction: 1 },
+        { x: 3*canvasWidth/4, y: canvasHeight/4, direction: 3 },
+        { x: canvasWidth/4, y: 3*canvasHeight/4, direction: 0 },
+        { x: 3*canvasWidth/4, y: 3*canvasHeight/4, direction: 2 }
+    ];
+    
+    // Trova posizione non occupata
+    let freePosition = positions.find(pos => {
+        return !players.some(player => 
+            Math.abs(player.x - pos.x) < 100 && Math.abs(player.y - pos.y) < 100
+        );
+    });
+    
+    if (freePosition) {
+        let cpu = new Bike(freePosition.x, freePosition.y, freePosition.direction, '#FF0000', 'CPU Stress', false);
+        cpu.isCPU = true;
+        cpu.aiLevel = 8; // CPU stress level
+        players.push(cpu);
+        allEntities.push(cpu);
+        
+        console.log(`🤖 CPU aggiunta in posizione (${freePosition.x}, ${freePosition.y})`);
+    }
+}
+
+function updateMultiplayerHUD(scores) {
+    // Aggiorna HUD con punteggi di tutti i giocatori
+    let hudHTML = '';
+    players.forEach((player, index) => {
+        let score = scores[player.name] || 0;
+        hudHTML += `
+            <div class="player-info player-${index === 0 ? 'blue' : 'yellow'}">
+                <span>${player.name}: ${score}</span>
+            </div>
+        `;
+    });
+    
+    document.getElementById('opponentsContainer').innerHTML = hudHTML;
+}
+
+function showMultiplayerGameOver(winner, finalScores) {
+    // Mostra schermata di fine partita multiplayer
+    document.getElementById('finalWinner').textContent = 
+        `🏆 VINCITORE: ${winner.name.toUpperCase()}`;
+    
+    let statsHTML = `
+        <div class="stat-line">
+            <span>Punteggi finali:</span>
+        </div>
+    `;
+    
+    players.forEach(player => {
+        let score = finalScores[player.name] || 0;
+        statsHTML += `
+            <div class="stat-line">
+                <span>${player.name}:</span>
+                <span>${score} vittorie</span>
+            </div>
+        `;
+    });
+    
+    document.getElementById('finalStats').innerHTML = statsHTML;
+    showScreen('gameOverScreen');
 }
 
 function updateOpponentPosition(data) {

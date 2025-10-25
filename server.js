@@ -24,69 +24,93 @@ app.get('/', (req, res) => {
 });
 
 // ===========================
-// MATCHMAKING SYSTEM
+// MATCHMAKING SYSTEM - MULTIPLAYER AVANZATO
 // ===========================
 
 let waitingPlayers = []; // Array di giocatori in attesa di match
-let activeRooms = {}; // Stanze attive { roomId: { player1: socket, player2: socket, ... } }
+let activeRooms = {}; // Stanze attive { roomId: { players: [], gameState: {}, ... } }
+
+// Configurazione partite per numero di giocatori
+const GAME_CONFIG = {
+    2: { maxRounds: 5, requiredWins: 3, name: "Duello" },
+    3: { maxRounds: 7, requiredWins: 3, name: "Triangolo" },
+    4: { maxRounds: 10, requiredWins: 3, name: "Quadrato" }
+};
 
 io.on('connection', (socket) => {
     console.log(`✅ Giocatore connesso: ${socket.id}`);
     
     // ===========================
-    // FIND MATCH
+    // FIND MATCH - MULTIPLAYER AVANZATO
     // ===========================
     socket.on('findMatch', (playerData) => {
-        console.log(`🔍 ${playerData.name} cerca una partita`);
+        console.log(`🔍 ${playerData.name} cerca una partita (${playerData.preferredPlayers || 2} giocatori)`);
         
         // Aggiungi alla coda
         socket.playerData = playerData;
         socket.playerData.socketId = socket.id;
+        socket.playerData.preferredPlayers = playerData.preferredPlayers || 2;
         
-        // Cerca se c'è già un giocatore in attesa
-        if (waitingPlayers.length > 0) {
-            // Match trovato!
-            let opponent = waitingPlayers.shift();
+        // Cerca se c'è già una stanza in attesa con lo stesso numero di giocatori
+        let targetPlayers = socket.playerData.preferredPlayers;
+        let availableRoom = null;
+        
+        // Cerca stanza esistente con spazio
+        for (let roomId in activeRooms) {
+            let room = activeRooms[roomId];
+            if (room.players.length < targetPlayers && room.players.length > 0) {
+                availableRoom = room;
+                break;
+            }
+        }
+        
+        if (availableRoom) {
+            // Unisciti a stanza esistente
+            socket.join(availableRoom.roomId);
+            availableRoom.players.push(socket);
             
-            // Crea una nuova stanza
-            let roomId = `room_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-            
-            // Aggiungi entrambi i giocatori alla stanza
-            socket.join(roomId);
-            opponent.join(roomId);
-            
-            // Salva la stanza
-            activeRooms[roomId] = {
-                player1: socket,
-                player2: opponent,
-                player1Data: socket.playerData,
-                player2Data: opponent.playerData
-            };
-            
-            // Notifica entrambi i giocatori
-            socket.emit('matchFound', {
-                roomId: roomId,
-                isPlayer1: true,
-                opponentName: opponent.playerData.name
+            // Notifica tutti i giocatori nella stanza
+            io.to(availableRoom.roomId).emit('playerJoined', {
+                roomId: availableRoom.roomId,
+                playerName: playerData.name,
+                playerCount: availableRoom.players.length,
+                totalPlayers: targetPlayers
             });
             
-            opponent.emit('matchFound', {
-                roomId: roomId,
-                isPlayer1: false,
-                opponentName: socket.playerData.name
-            });
+            console.log(`👥 ${playerData.name} si è unito alla stanza ${availableRoom.roomId} (${availableRoom.players.length}/${targetPlayers})`);
             
-            console.log(`🎮 Match creato: ${socket.playerData.name} vs ${opponent.playerData.name}`);
+            // Se la stanza è piena, inizia la partita
+            if (availableRoom.players.length === targetPlayers) {
+                startMultiplayerGame(availableRoom);
+            }
             
         } else {
-            // Nessun avversario disponibile, aggiungi alla coda
-            waitingPlayers.push(socket);
+            // Crea nuova stanza
+            let roomId = `room_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+            socket.join(roomId);
             
-            socket.emit('waitingForOpponent', {
-                waitingCount: waitingPlayers.length
+            // Crea stanza
+            activeRooms[roomId] = {
+                roomId: roomId,
+                players: [socket],
+                gameState: {
+                    currentRound: 1,
+                    maxRounds: GAME_CONFIG[targetPlayers].maxRounds,
+                    requiredWins: GAME_CONFIG[targetPlayers].requiredWins,
+                    gameType: GAME_CONFIG[targetPlayers].name,
+                    scores: {},
+                    cpuRound: 0 // Contatore per CPU aggiuntive
+                }
+            };
+            
+            socket.emit('roomCreated', {
+                roomId: roomId,
+                playerCount: 1,
+                totalPlayers: targetPlayers,
+                gameConfig: GAME_CONFIG[targetPlayers]
             });
             
-            console.log(`⏳ ${playerData.name} aggiunto alla coda (${waitingPlayers.length} in attesa)`);
+            console.log(`🏠 Nuova stanza creata: ${roomId} (${targetPlayers} giocatori)`);
         }
     });
     
@@ -94,21 +118,37 @@ io.on('connection', (socket) => {
     // CANCEL MATCHMAKING
     // ===========================
     socket.on('cancelMatch', () => {
-        waitingPlayers = waitingPlayers.filter(s => s.id !== socket.id);
+        // Rimuovi da tutte le stanze
+        for (let roomId in activeRooms) {
+            let room = activeRooms[roomId];
+            room.players = room.players.filter(p => p.id !== socket.id);
+            
+            if (room.players.length === 0) {
+                delete activeRooms[roomId];
+                console.log(`🚪 Stanza ${roomId} chiusa (nessun giocatore)`);
+            } else {
+                // Notifica altri giocatori
+                io.to(roomId).emit('playerLeft', {
+                    playerName: socket.playerData?.name || socket.id,
+                    remainingPlayers: room.players.length
+                });
+            }
+        }
+        
         console.log(`❌ ${socket.playerData?.name || socket.id} ha annullato la ricerca`);
     });
     
     // ===========================
-    // PLAYER MOVE (Sincronizzazione)
+    // PLAYER MOVE (Sincronizzazione Multiplayer)
     // ===========================
     socket.on('playerMove', (moveData) => {
         let room = activeRooms[moveData.roomId];
         
         if (room) {
-            // Invia movimento all'avversario
-            let opponent = room.player1.id === socket.id ? room.player2 : room.player1;
-            
-            opponent.emit('opponentMove', {
+            // Invia movimento a tutti gli altri giocatori nella stanza
+            socket.to(moveData.roomId).emit('opponentMove', {
+                playerId: socket.id,
+                playerName: socket.playerData.name,
                 x: moveData.x,
                 y: moveData.y,
                 direction: moveData.direction,
@@ -120,42 +160,87 @@ io.on('connection', (socket) => {
     });
     
     // ===========================
-    // ROUND END
+    // ROUND END - MULTIPLAYER
     // ===========================
     socket.on('roundEnd', (data) => {
         let room = activeRooms[data.roomId];
         
         if (room) {
-            // Notifica entrambi i giocatori
-            io.to(data.roomId).emit('roundEnded', {
-                winner: data.winner,
-                stats: data.stats
-            });
+            // Aggiorna punteggi
+            if (!room.gameState.scores[data.winner.playerId]) {
+                room.gameState.scores[data.winner.playerId] = 0;
+            }
+            room.gameState.scores[data.winner.playerId]++;
+            
+            // Controlla se qualcuno ha vinto
+            let winner = null;
+            for (let playerId in room.gameState.scores) {
+                if (room.gameState.scores[playerId] >= room.gameState.requiredWins) {
+                    winner = playerId;
+                    break;
+                }
+            }
+            
+            if (winner) {
+                // Partita finita!
+                io.to(data.roomId).emit('gameEnded', {
+                    winner: winner,
+                    finalScores: room.gameState.scores,
+                    totalRounds: room.gameState.currentRound
+                });
+                
+                // Rimuovi stanza
+                delete activeRooms[data.roomId];
+                console.log(`🏆 Partita finita in stanza ${data.roomId}. Vincitore: ${winner}`);
+                
+            } else {
+                // Continua al prossimo round
+                room.gameState.currentRound++;
+                
+                // Controlla se aggiungere CPU (ogni 3 round)
+                let addCPU = (room.gameState.currentRound % 3 === 0);
+                
+                io.to(data.roomId).emit('roundEnded', {
+                    winner: data.winner,
+                    stats: data.stats,
+                    currentRound: room.gameState.currentRound,
+                    maxRounds: room.gameState.maxRounds,
+                    scores: room.gameState.scores,
+                    addCPU: addCPU
+                });
+                
+                console.log(`🎮 Round ${room.gameState.currentRound - 1} completato in stanza ${data.roomId}${addCPU ? ' (CPU aggiuntiva!)' : ''}`);
+            }
         }
     });
     
     // ===========================
-    // DISCONNESSIONE
+    // DISCONNESSIONE - MULTIPLAYER
     // ===========================
     socket.on('disconnect', () => {
         console.log(`❌ Giocatore disconnesso: ${socket.id}`);
         
-        // Rimuovi dalla coda di attesa
-        waitingPlayers = waitingPlayers.filter(s => s.id !== socket.id);
-        
-        // Trova e chiudi la stanza attiva
+        // Trova e gestisci la stanza attiva
         for (let roomId in activeRooms) {
             let room = activeRooms[roomId];
+            let playerIndex = room.players.findIndex(p => p.id === socket.id);
             
-            if (room.player1.id === socket.id || room.player2.id === socket.id) {
-                // Notifica l'altro giocatore
-                let opponent = room.player1.id === socket.id ? room.player2 : room.player1;
-                opponent.emit('opponentDisconnected');
+            if (playerIndex !== -1) {
+                // Rimuovi giocatore dalla stanza
+                room.players.splice(playerIndex, 1);
                 
-                // Rimuovi la stanza
-                delete activeRooms[roomId];
-                
-                console.log(`🚪 Stanza ${roomId} chiusa`);
+                if (room.players.length === 0) {
+                    // Nessun giocatore rimasto, chiudi stanza
+                    delete activeRooms[roomId];
+                    console.log(`🚪 Stanza ${roomId} chiusa (nessun giocatore)`);
+                } else {
+                    // Notifica altri giocatori
+                    io.to(roomId).emit('playerDisconnected', {
+                        playerName: socket.playerData?.name || socket.id,
+                        remainingPlayers: room.players.length
+                    });
+                    console.log(`👥 Giocatore rimosso dalla stanza ${roomId} (${room.players.length} rimasti)`);
+                }
                 break;
             }
         }
@@ -177,13 +262,58 @@ io.on('connection', (socket) => {
 });
 
 // ===========================
+// FUNZIONI HELPER
+// ===========================
+
+function startMultiplayerGame(room) {
+    console.log(`🚀 Iniziando partita multiplayer in stanza ${room.roomId}`);
+    
+    // Inizializza punteggi per tutti i giocatori
+    room.players.forEach(player => {
+        room.gameState.scores[player.id] = 0;
+    });
+    
+    // Notifica tutti i giocatori che la partita inizia
+    io.to(room.roomId).emit('gameStarted', {
+        roomId: room.roomId,
+        players: room.players.map(p => ({
+            id: p.id,
+            name: p.playerData.name
+        })),
+        gameConfig: {
+            maxRounds: room.gameState.maxRounds,
+            requiredWins: room.gameState.requiredWins,
+            gameType: room.gameState.gameType
+        }
+    });
+    
+    console.log(`🎮 Partita iniziata: ${room.players.map(p => p.playerData.name).join(' vs ')}`);
+}
+
+// ===========================
 // STATISTICHE SERVER (Debug)
 // ===========================
 setInterval(() => {
+    let totalPlayersInRooms = 0;
+    let roomStats = {};
+    
+    for (let roomId in activeRooms) {
+        let room = activeRooms[roomId];
+        totalPlayersInRooms += room.players.length;
+        
+        let playerCount = room.players.length;
+        if (!roomStats[playerCount]) roomStats[playerCount] = 0;
+        roomStats[playerCount]++;
+    }
+    
     console.log(`📊 Server Stats:`);
     console.log(`   - Giocatori connessi: ${io.engine.clientsCount}`);
-    console.log(`   - In attesa: ${waitingPlayers.length}`);
+    console.log(`   - In stanze: ${totalPlayersInRooms}`);
     console.log(`   - Partite attive: ${Object.keys(activeRooms).length}`);
+    
+    if (Object.keys(roomStats).length > 0) {
+        console.log(`   - Stanze per giocatori:`, roomStats);
+    }
 }, 30000); // Ogni 30 secondi
 
 // ===========================
@@ -195,7 +325,9 @@ http.listen(PORT, () => {
     console.log('🎮 ===================================');
     console.log(`🌐 Server in ascolto su porta: ${PORT}`);
     console.log(`🔗 URL locale: http://localhost:${PORT}`);
-    console.log('🧠 Sistema formativo multiplayer pronto!');
+    console.log('🧠 Sistema formativo multiplayer avanzato pronto!');
+    console.log('👥 Supporta 2-4 giocatori simultanei');
+    console.log('🤖 CPU aggiuntive ogni 3 round');
     console.log('🎮 ===================================');
 });
 
